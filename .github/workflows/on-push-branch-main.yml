@@ -1,0 +1,47 @@
+name: On Push to Main Branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/call-run-tests.yml
+
+  get-project-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo snap install yq
+
+      - name: Get project version
+        id: get_version
+        run: |
+          VERSION=$(yq '.project.version' pyproject.toml)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  create-tag:
+    needs: [get-project-version, run-tests]
+    runs-on: ubuntu-latest
+    outputs:
+      tag: v${{ needs.get-project-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create tag if it doesn't exist
+        uses: rickstaa/action-create-tag@v1
+        continue-on-error: true
+        with:
+          tag: v${{ needs.get-project-version.outputs.version }}
+          message: Automated deployment of ${{ github.sha }}
+          tag_exists_error: false
+
+  deploy-rotanika-windows:
+    needs: [create-tag, run-tests]
+    uses: ./.github/workflows/call-deploy-rotanika.yml
+    with:
+      tag: ${{ needs.create-tag.outputs.tag }}

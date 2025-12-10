@@ -1,0 +1,14 @@
+services:
+  rotanika:
+    build: .
+    container_name: rotanika
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./src:/app/src
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./rotanika.py:/app/rotanika.py
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      - PYTHONPATH=/app/src
+    command: python rotanika.py

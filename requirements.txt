@@ -1,0 +1,8 @@
+altgraph==0.17.5
+packaging==25.0
+pastel==0.2.1
+poethepoet==0.38.0
+pyinstaller==6.17.0
+pyinstaller-hooks-contrib==2025.10
+PyYAML==6.0.3
+setuptools==80.9.0

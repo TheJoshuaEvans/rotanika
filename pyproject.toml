@@ -1,0 +1,24 @@
+[project]
+name = "rotanika"
+version = "0.0.0"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.poe.tasks]
+# Run all unit tests
+test = "python -m unittest discover -s src -p \"test*.py\""
+
+# Run the Rotanika game
+run = "python rotanika.py"
+
+# Run the Rotanika game inside a Docker container
+'run:docker' = "docker-compose run --rm rotanika"
+
+# Build the Rotanika executable using PyInstaller
+build = "python -m PyInstaller rotanika.spec"
+
+# Build the Rotanika executable for MacOS
+'build:mac' = "python -m PyInstaller rotanika_mac.spec"
+
+# Build the Rotanika executable inside a Docker container
+'build:docker' = "docker build -t rotanika ."

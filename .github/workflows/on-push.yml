@@ -1,0 +1,10 @@
+name: On Push to Any Branch
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/call-run-tests.yml
