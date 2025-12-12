@@ -1,4 +1,6 @@
 name: On Push to Main Branch
+permissions:
+  contents: write
 on:
   push:
     branches:

@@ -169,7 +169,7 @@ class Console:
 
         # Start by building the string. We need the console size
         width, height = self._get_console_size()
-        output_lines = []
+        output_lines = [] # type: list[str]
 
         # Start building the string with the top border
         border_line = self.border_color + self.border_char * width + Colors.RESET + '\n'
@@ -203,7 +203,7 @@ class Console:
         # If there were not enough lines to fill the console, add empty lines above the generated lines,
         # so that the latest input always appears at the bottom of the console, even if there is not
         # enough history to fill the console.
-        while len(output_lines) < height - header_lines_num:
+        while len(output_lines) < height - 4: # Reserve space for bottom border + padding and input lines
             output_lines.insert(header_lines_num, self._generate_empty_line())
 
         # Add an empty line before the bottom border
@@ -291,3 +291,12 @@ class Console:
             self._history[-1] = ConsoleEntry(text=text, is_input=False)
         else:
             self._history.append(ConsoleEntry(text=text, is_input=False))
+
+if __name__ == "__main__":
+    console = Console()
+    console.top_border_text = "Console Test"
+
+    while True:
+        user_input = console.input()
+        console.write(f'You entered: {user_input}')
+        console.write_empty()

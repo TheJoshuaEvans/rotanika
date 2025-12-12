@@ -55,6 +55,10 @@ def wrap_line(text: str, max_width: int) -> list[str]:
     Returns:
         list[str]: A list of wrapped lines.
     """
+    # Special case: Empty input
+    if text == "":
+        return [""]
+
     words = text.split(' ')
     wrapped_lines = []
     current_line = ""

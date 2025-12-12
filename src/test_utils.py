@@ -110,5 +110,13 @@ class TestWrapLine(unittest.TestCase):
         result = wrap_line(text, max_width)
         self.assertEqual(result, expected)
 
+    def test_wrap_lines_empty_string(self):
+        """Test wrapping an empty string."""
+        text = ""
+        max_width = 10
+        expected = [""]
+        result = wrap_line(text, max_width)
+        self.assertEqual(result, expected)
+
 if __name__ == "__main__":
     unittest.main()
