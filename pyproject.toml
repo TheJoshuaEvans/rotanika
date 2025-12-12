@@ -1,6 +1,6 @@
 [project]
 name = "rotanika"
-version = "0.0.1"
+version = "0.0.2"
 readme = "README.md"
 requires-python = ">=3.12"
 
@@ -10,6 +10,9 @@ test = "python -m unittest discover -s src -p \"test*.py\""
 
 # Run the Rotanika game
 run = "python rotanika.py"
+
+# Run the console UI itself, for development purposes
+'run:console' = "python src/console.py"
 
 # Run the Rotanika game inside a Docker container
 'run:docker' = "docker-compose run --rm rotanika"

@@ -56,12 +56,12 @@ def wrap_line(text: str, max_width: int) -> list[str]:
         list[str]: A list of wrapped lines.
     """
     # Special case: Empty input
-    if text == "":
-        return [""]
+    if text == '':
+        return ['']
 
     words = text.split(' ')
     wrapped_lines = []
-    current_line = ""
+    current_line = ''
 
     for word in words:
         new_line = current_line + (' ' if current_line else '') + word

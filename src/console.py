@@ -1,6 +1,7 @@
 import os
 import time
 import unicodedata
+import threading
 
 from typing import List, Optional
 
@@ -28,6 +29,19 @@ class Console:
 
     # List to store history of console interactions
     _history: List['ConsoleEntry'] = []
+
+    # Loading state
+    _is_loading: bool = False
+    """Whether the loading animation is active."""
+
+    _loading_thread: Optional[threading.Thread] = None
+    """Thread running the loading animation."""
+
+    _loading_stop_event: Optional[threading.Event] = None
+    """Event to signal the loading thread to stop."""
+
+    _loading_history_index: int = -1
+    """Index of the loading message in history."""
 
     #* Property Attributes *#
     border_char: str = '#'
@@ -146,6 +160,25 @@ class Console:
                 width += 1
         return width
 
+    def _loading_animation_loop(self, message: str, interval: float) -> None:
+        """
+        Runs the loading animation loop in a background thread.
+
+        Args:
+            message (str): The base loading message.
+            interval (float): The interval in seconds between dot additions.
+        """
+        dot_count = 0
+        while self._is_loading and self._loading_stop_event is not None and not self._loading_stop_event.wait(interval):
+            # Calculate max dots every run to handle console resize events
+            max_dots = self._get_console_size()[0] - self._get_display_width(message) - 4  # Reserve space for borders and padding
+            dot_count += 1
+            # Update the loading message with dots
+            if 0 <= self._loading_history_index < len(self._history):
+                animated_message = message + '.' * (dot_count % (max_dots + 1))  # Cycle through 0 to max_dots dots
+                self._history[self._loading_history_index].text = animated_message
+                self._render()
+
     def _pad_text(self, text: str, target_width: int) -> str:
         """
         Pad text to target display width, accounting for emoji display width.
@@ -230,7 +263,64 @@ class Console:
         return wrap_line(text, target_line_width)
 
     # --------- Public Methods ---------
+    def load_start(self, message: str = GameStrings.LOADING_MESSAGE, interval: float = 1) -> None:
+        """
+        Starts a loading animation with the given message and dot interval.
+        The animation runs in a background thread and does not block the main thread.
+
+        Args:
+            message (str): The loading message to display.
+            interval (float): The interval in seconds between dot additions. Defaults to 1.
+        """
+        # End any existing loading animation
+        if self._is_loading:
+            self.load_end()
+
+        # Set up loading state
+        self._is_loading = True
+        self._loading_stop_event = threading.Event()
+        self._loading_history_index = len(self._history)
+
+        # Write the initial loading message
+        self._history.append(ConsoleEntry(text=message, is_input=False))
+        self._render()
+
+        # Start the loading animation thread
+        self._loading_thread = threading.Thread(
+            target=self._loading_animation_loop,
+            args=(message, interval),
+            daemon=True
+        )
+        self._loading_thread.start()
+
+    def load_end(self) -> None:
+        """
+        Stops the loading animation and replaces the loading message with a blank line.
+        """
+        if not self._is_loading:
+            return
+
+        # Signal the loading thread to stop
+        self._is_loading = False
+        if self._loading_stop_event:
+            self._loading_stop_event.set()
+
+        # Wait for the thread to finish
+        if self._loading_thread and self._loading_thread.is_alive():
+            self._loading_thread.join(timeout=1.0)
+
+        # Replace the loading message with a blank line
+        if 0 <= self._loading_history_index < len(self._history):
+            self._history[self._loading_history_index] = ConsoleEntry(text='', is_input=False)
+
+        # Clean up
+        self._loading_thread = None
+        self._loading_stop_event = None
+        self._loading_history_index = -1
+        self._render()
+
     def exit(self, code: int = 0, delay_secs: float = 1.5, message: str = GameStrings.EXIT_MESSAGE):
+
         """
         Exits the console application on a delay and displays an exit message
 
@@ -248,13 +338,18 @@ class Console:
 
     def input(self, prompt: Optional[str] = None) -> str:
         """
-        Prompts the user for input and records it in history. Will render the console before prompting
+        Prompts the user for input and records it in history. Will render the console before prompting.
+        Automatically ends any active loading animation.
 
         Args:
             prompt (Optional[str]): The input prompt. Defaults to the property value
         Returns:
             str: The user input.
         """
+        # End loading animation if active
+        if self._is_loading:
+            self.load_end()
+
         self._render()
 
         try:
@@ -275,18 +370,27 @@ class Console:
     def write_empty(self) -> None:
         """
         Writes an empty line to the console history.
+        Automatically ends any active loading animation.
         """
+        # End loading animation if active
+        if self._is_loading:
+            self.load_end()
+
         self._history.append(ConsoleEntry(text='', is_input=False))
 
     def write(self, text: str, overwrite: bool = False) -> None:
         """
         Writes text to the console history. Does NOT render to the console. Can optionally overwrite the
-        latest console entry.
+        latest console entry. Automatically ends any active loading animation.
 
         Args:
             text (str): The text to write.
             overwrite (bool): Whether to overwrite the last entry in history. Defaults to False.
         """
+        # End loading animation if active
+        if self._is_loading:
+            self.load_end()
+
         if overwrite and self._history:
             self._history[-1] = ConsoleEntry(text=text, is_input=False)
         else:
